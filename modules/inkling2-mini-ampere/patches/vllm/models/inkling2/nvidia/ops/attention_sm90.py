@@ -33,6 +33,7 @@ MODE_GATED = 1
 MODE_PARTIAL = 2
 
 _TUNE_SM86_INT8_PREFILL = os.environ.get("INKLING_SM86_INT8_PREFILL") == "1"
+_TUNE_SM86_INT8_VERIFY = os.environ.get("INKLING_SM86_INT8_VERIFY_TILE") == "1"
 
 
 @triton.jit
@@ -447,6 +448,13 @@ def rel_attention(
     elif prefill_tile is not None:
         assert full_int8_prefill
         block_n, num_warps, num_stages = prefill_tile
+    elif (
+        _TUNE_SM86_INT8_VERIFY and key_cache.dtype == torch.int8 and not window
+        and block_m <= 32 and mode in (MODE_GATED, MODE_PARTIAL)
+        and torch.cuda.get_device_capability(q.device) == (8, 6)
+    ):
+        # SM86 verify sweep: one pipeline stage won for every tested shape.
+        block_n, num_warps, num_stages = (128, 4, 1)
     elif (
         _TUNE_SM86_INT8_PREFILL and full_int8_prefill
         and torch.cuda.get_device_capability(q.device) == (8, 6)

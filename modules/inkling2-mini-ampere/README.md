@@ -56,7 +56,7 @@ Add this entry under `providers` in `~/.pi/agent/models.json` and select it via 
     "input": ["text", "image"],
     "reasoning": true,
     "contextWindow": 200000,
-    "maxTokens": 4096,
+    "maxTokens": 16384,
     "compat": {
       "supportsDeveloperRole": false,
       "supportsReasoningEffort": false,
@@ -76,7 +76,7 @@ On the tested two-A4500 host, the warmed-up 384-token coding probe improved from
 
 The INT8 + vision + DSpark profile retrieved the correct answer from a cold **199,368-token** prompt before the graph change (83.2 s to first token). The graph-enabled server still reports **200,000 tokens per request**, including generation. Its KV pool was **4.96 GiB per GPU**, and the pool is shared across both active slots. Two short concurrent completions passed; two simultaneous 200K requests have **not** been validated with vision and DSpark on. Two ~199K requests overlapped in the earlier INT8 text-only configuration. More VRAM reserved by the allocator is not necessarily more usable KV capacity.
 
-For SM86-specific results, see [INT8 prefill tuning](benchmarks/SM86_PREFILL.md) and the [DSpark verification sweep](benchmarks/SM86_VERIFY.md). Prefill tuning is available as an opt-in; the verification sweep is a microbenchmark only.
+For SM86-specific results, see [INT8 prefill tuning](benchmarks/SM86_PREFILL.md), the [DSpark verification sweep](benchmarks/SM86_VERIFY.md), and the [full-model A/B](benchmarks/SM86_AB.md), which shows which settings to enable. All are opt-in.
 
 ## Provenance
 

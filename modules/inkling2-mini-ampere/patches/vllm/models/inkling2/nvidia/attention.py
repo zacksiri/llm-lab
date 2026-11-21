@@ -315,6 +315,18 @@ class Inkling2Attention(nn.Module, AttentionLayerBase):
                 raise ValueError("Inkling INT8 KV only supports opt-in experimental DSpark")
             if os.environ.get("VLLM_KV_CACHE_LAYOUT") != "BLHNC":
                 raise ValueError("Inkling INT8 KV requires VLLM_KV_CACHE_LAYOUT=BLHNC")
+        # Opt-in SM86 split count for full-attention INT8 decode/verification.
+        # The count depends only on configuration, so it is CUDA-graph safe.
+        self._sm86_verify_splits = 0
+        verify_splits = int(os.environ.get("INKLING_SM86_INT8_VERIFY_SPLITS", "0"))
+        capability = current_platform.get_device_capability()
+        if (
+            verify_splits > 0
+            and _use_int8_kv(self.sliding_window if self.is_local else None)
+            and capability is not None
+            and capability.to_int() == 86
+        ):
+            self._sm86_verify_splits = verify_splits
         supported: tuple[str, ...] = ("auto", "bfloat16")
         if current_platform.is_device_capability_family(120):
             supported += ("float16", "fp8", "fp8_e4m3")
@@ -566,13 +578,17 @@ class Inkling2Attention(nn.Module, AttentionLayerBase):
         `rel_decode_attention`: the whole batch, or in a mixed batch the
         leading decode/verify requests."""
         num_reqs = md.seq_lens.shape[0]
-        plan = partial(
+        base_plan = partial(
             plan_decode_attention,
             self.is_local,
             num_heads=self.num_heads,
             num_kv_heads=self.num_kv_heads,
             rel_extent=self.rel_extent,
         )
+
+        def plan(**kwargs) -> int:
+            splits = base_plan(**kwargs)
+            return self._sm86_verify_splits if splits and self._sm86_verify_splits else splits
         num_splits = plan(num_reqs=num_reqs, max_query_len=md.max_query_len)
         if num_splits:
             return num_reqs, num_tokens, num_splits

@@ -47,7 +47,7 @@ services:
       - "${MAX_MODEL_LEN:-200000}"
       - --gpu-memory-utilization
       - "${GPU_MEMORY_UTILIZATION:-0.93}"
-      - --no-async-scheduling
+      - "${ASYNC_FLAG:---no-async-scheduling}"
       - --limit-mm-per-prompt
       - '{"image":1,"video":0}'
       - --reasoning-parser
@@ -60,7 +60,7 @@ services:
       - --max-num-seqs
       - "2"
       - --compilation-config
-      - '{"mode":0,"cudagraph_mode":"FULL_DECODE_ONLY","prefill_cudagraph_capture_token_sizes":[],"decode_cudagraph_capture_request_sizes":[1,2],"max_decode_cudagraph_capture_tokens":10}'
+      - '{"mode":0,"cudagraph_mode":"FULL_DECODE_ONLY","prefill_cudagraph_capture_token_sizes":[],"decode_cudagraph_capture_request_sizes":[1,2],"max_decode_cudagraph_capture_tokens":${DECODE_GRAPH_TOKENS:-10}}'
       - --kernel-config
       - '{"enable_jit_warmup":false,"ir_op_priority":{"rms_norm":["native"],"fused_add_rms_norm":["native"]}}'
 

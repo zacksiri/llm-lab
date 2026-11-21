@@ -2,9 +2,11 @@ services:
   inkling:
     environment:
       INKLING_SM80_INT8_DSPARK: "1"
+      INKLING_SM86_INT8_VERIFY_SPLITS: "${INKLING_SM86_INT8_VERIFY_SPLITS:-0}"
+      INKLING_SM86_INT8_VERIFY_TILE: "${INKLING_SM86_INT8_VERIFY_TILE:-0}"
     entrypoint:
       - /bin/sh
       - -ec
       - |
-        exec vllm serve "$$@" --speculative-config '{"method":"dspark","num_speculative_tokens":4,"draft_sample_method":"probabilistic"}'
+        exec vllm serve "$$@" --speculative-config '{"method":"dspark","num_speculative_tokens":${DSPARK_K:-4},"draft_sample_method":"probabilistic"}'
       - vllm-dspark
