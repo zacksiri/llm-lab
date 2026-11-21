@@ -1,0 +1,2 @@
+{"event": "start", "epoch": 1795281645.603355, "target": 249400, "raw_tokens": 249260, "phrase": "cobalt lantern 394"}
+{"event": "result", "epoch": 1795281749.526627, "target": 249400, "ttft_s": 103.03272972299601, "phrase": "cobalt lantern 394", "wall_s": 103.92319975599821, "usage": {"prompt_tokens": 249273, "total_tokens": 249353, "completion_tokens": 80, "completion_tokens_details": {"reasoning_tokens": 68}}, "finish_reason": "stop", "result": "cobalt lantern 394", "ok": true}

@@ -1,6 +1,7 @@
 """Single-GPU test for the opt-in Inkling INT8 KV kernels; no model needed."""
 
 import math
+import os
 
 import torch
 
@@ -97,7 +98,12 @@ def check_case(query_len, seq_len, page, splits, graph=False):
     assert torch.isfinite(ref).all().item() and torch.isfinite(ref_lse).all().item()
     # Triton's packed and dense readers can pick different MMA layouts; the
     # BF16 probability cast makes a tiny rounding delta visible in the output.
-    torch.testing.assert_close(out, ref, atol=1e-4, rtol=1e-4)
+    # A wider key tile also changes the online softmax partition. Keep the
+    # strict same-tile check for the default path and split decode; tuned
+    # prefill additionally has the independent dense FP32 reference above.
+    tuned = os.environ.get("INKLING_SM86_INT8_PREFILL") == "1" and splits == 1 and query_len * G > 64
+    tolerance = {"atol": 3e-3, "rtol": 5e-3} if tuned else {"atol": 1e-4, "rtol": 1e-4}
+    torch.testing.assert_close(out, ref, **tolerance)
     torch.testing.assert_close(lse, ref_lse, atol=5e-5, rtol=1e-4)
     print(f"max output delta vs unpacked BF16: {(out - ref).abs().max().item():.3g}", flush=True)
     if graph:

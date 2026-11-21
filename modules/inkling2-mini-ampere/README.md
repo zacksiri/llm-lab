@@ -76,6 +76,8 @@ On the tested two-A4500 host, the warmed-up 384-token coding probe improved from
 
 The INT8 + vision + DSpark profile retrieved the correct answer from a cold **199,368-token** prompt before the graph change (83.2 s to first token). The graph-enabled server still reports **200,000 tokens per request**, including generation. Its KV pool was **4.96 GiB per GPU**, and the pool is shared across both active slots. Two short concurrent completions passed; two simultaneous 200K requests have **not** been validated with vision and DSpark on. Two ~199K requests overlapped in the earlier INT8 text-only configuration. More VRAM reserved by the allocator is not necessarily more usable KV capacity.
 
+For SM86-specific results, see [INT8 prefill tuning](benchmarks/SM86_PREFILL.md) and the [DSpark verification sweep](benchmarks/SM86_VERIFY.md). Prefill tuning is available as an opt-in; the verification sweep is a microbenchmark only.
+
 ## Provenance
 
 Based on [`snailbrainx/inkling-2-mini-sm80` at `23dbf478`](https://github.com/snailbrainx/inkling-2-mini-sm80/tree/23dbf478a5b9fc4dd314b26c9d58c94692c06395). [Upstream notes](UPSTREAM.md) describe that original project, not this module's run procedure. LLM Lab changes include the SM86/TP2 overrides, INT8 KV attention/short-conv integration, FA2 vision fallback, DSpark opt-in, and Docker/Compose/tests. The code overlays the pinned `vllm/vllm-openai` preview; it is not an upstream vLLM build. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for attribution and terms. No model weights or container images are distributed in this repository.

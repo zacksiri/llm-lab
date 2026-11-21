@@ -15,6 +15,7 @@ services:
       NCCL_IB_DISABLE: "1"
       INKLING_SM80: "1"
       INKLING_SM80_INT8_KV: "1"
+      INKLING_SM86_INT8_PREFILL: "${INKLING_SM86_INT8_PREFILL:-0}"
       INKLING_SM80_HUMMING: '{"block_shape":[8,128,128],"warp_shape":[8,64,64],"num_stages":2,"num_ctas_per_sm":1}'
       VLLM_KV_CACHE_LAYOUT: BLHNC
       PYTORCH_CUDA_ALLOC_CONF: expandable_segments:False

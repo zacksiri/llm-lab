@@ -15,6 +15,8 @@ of the rows' visible range, so a split count that depends only on the batch
 holds for every replay of a CUDA graph.
 """
 
+import os
+
 import torch
 from triton.language.extra.cuda import libdevice
 
@@ -29,6 +31,8 @@ _SHEAR_TILE = tl.constexpr(128)
 MODE_OUT_LSE = 0
 MODE_GATED = 1
 MODE_PARTIAL = 2
+
+_TUNE_SM86_INT8_PREFILL = os.environ.get("INKLING_SM86_INT8_PREFILL") == "1"
 
 
 @triton.jit
@@ -372,6 +376,8 @@ def rel_attention(
     window: int,
     num_splits: int,
     mode: int,
+    prefill_tile: tuple[int, int, int] | None = None,
+    decode_tile: tuple[int, int, int] | None = None,
 ) -> None:
     """Launch `_rel_attention_kernel` over the requests of `cu_seqlens_q`.
 
@@ -426,6 +432,27 @@ def rel_attention(
     else:
         assert out.is_contiguous() and lse.is_contiguous()
         out_strides = (0, 0, 0, 0)
+    block_n = (64 if window else 32) if block_m >= 128 else 128 if block_m <= 32 else 64
+    num_warps = 8 if window and block_m >= 128 else 4
+    num_stages = 3 if window and block_m >= 128 else 2
+    full_int8_prefill = (
+        key_cache.dtype == torch.int8 and not window and block_m == 128
+        and mode == MODE_OUT_LSE and num_splits == 1
+    )
+    if decode_tile is not None:
+        # Explicit benchmark override; serving still uses the established defaults.
+        assert prefill_tile is None and key_cache.dtype == torch.int8 and not window
+        assert mode in (MODE_GATED, MODE_PARTIAL) and block_m <= 32
+        block_n, num_warps, num_stages = decode_tile
+    elif prefill_tile is not None:
+        assert full_int8_prefill
+        block_n, num_warps, num_stages = prefill_tile
+    elif (
+        _TUNE_SM86_INT8_PREFILL and full_int8_prefill
+        and torch.cuda.get_device_capability(q.device) == (8, 6)
+    ):
+        # SM86 sweep: larger key tiles amortize INT8 unpacking and softmax.
+        block_n, num_warps, num_stages = (128, 8, 2)
     _rel_attention_kernel[grid](
         q,
         key_cache,
@@ -460,10 +487,7 @@ def rel_attention(
         DRAFT=draft,
         MODE=mode,
         BLOCK_M=block_m,
-        # sm_80 (Ampere): for the 128-row prefill tiles, full layers take 32-key blocks with 4 warps
-        # (~9% faster at 120k-250k of context, with the far-block loop above) and window layers 64-key blocks,
-        # 8 warps, 3 stages (2.15-2.40 ms an 8k chunk against 2.45-2.88); the other tiles as before.
-        BLOCK_N=(64 if window else 32) if block_m >= 128 else 128 if block_m <= 32 else 64,
-        num_warps=(8 if window else 4) if block_m >= 128 else 4,
-        num_stages=3 if (window and block_m >= 128) else 2,
+        BLOCK_N=block_n,
+        num_warps=num_warps,
+        num_stages=num_stages,
     )
