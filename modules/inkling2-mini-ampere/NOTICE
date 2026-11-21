@@ -1,0 +1,22 @@
+inkling-2-mini-sm80
+Copyright 2026 snailbrainx
+
+This product includes software from the vLLM project (https://github.com/vllm-project/vllm),
+Copyright contributors to the vLLM project, licensed under the Apache License, Version 2.0.
+
+The following files under patches/vllm/ are modified copies of files from the
+vllm/vllm-openai:inkling-2-mini image (vLLM 0.1.dev25855+g7cb5dae22), changed to run on
+NVIDIA sm_80 (Ampere) GPUs and to run faster there; patches/sm80.diff shows every change:
+
+  models/inkling2/quant_config.py
+  models/inkling2/nvidia/attention.py
+  models/inkling2/nvidia/dspark.py
+  models/inkling2/nvidia/loop.py
+  models/inkling2/nvidia/ops/attention_sm90.py
+  models/inkling2/nvidia/ops/conv_mix.py
+  models/inkling2/nvidia/ops/gemv.py
+  models/inkling2/nvidia/ops/linear.py
+  models/inkling2/nvidia/ops/moe_sm90.py
+
+The Triton kernels in site/inkling_sm80_ops.py and site/inkling_sm80_moe_align.py are written
+for this repository and reproduce the behaviour of the corresponding vLLM operations.

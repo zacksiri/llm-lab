@@ -1,0 +1,13 @@
+*
+!Dockerfile*
+!patches/
+!patches/vllm/
+!patches/vllm/**
+!site/
+!site/**
+!overrides/
+!overrides/sm86/
+!overrides/sm86/**
+!tools/
+!tools/test_int8_kv.py
+**/__pycache__/

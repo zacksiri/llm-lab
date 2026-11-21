@@ -1,0 +1,10 @@
+services:
+  inkling:
+    environment:
+      INKLING_SM80_INT8_DSPARK: "1"
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        exec vllm serve "$$@" --speculative-config '{"method":"dspark","num_speculative_tokens":4,"draft_sample_method":"probabilistic"}'
+      - vllm-dspark

@@ -1,0 +1,8 @@
+# Kernel test image only. INT8 KV is not wired into vLLM serving yet.
+FROM vllm/vllm-openai@sha256:c2dc759f5984f69c1e2418c6af7c26eb756f5ed2a8934c768ae1253645d1449e
+
+COPY patches/vllm/models/inkling2/nvidia/ops/attention_sm90.py /usr/local/lib/python3.14/dist-packages/vllm/models/inkling2/nvidia/ops/attention_sm90.py
+COPY tools/test_int8_kv.py /opt/inkling/test_int8_kv.py
+
+ENTRYPOINT ["python3", "/opt/inkling/test_int8_kv.py"]
+CMD []
