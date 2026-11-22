@@ -45,9 +45,10 @@ services:
       - --disable-custom-all-reduce
       - --max-model-len
       - "${MAX_MODEL_LEN:-200000}"
+      - "${ASYNC_FLAG:---no-async-scheduling}"
       - --gpu-memory-utilization
       - "${GPU_MEMORY_UTILIZATION:-0.93}"
-      - "${ASYNC_FLAG:---no-async-scheduling}"
+      - --no-language-model-only
       - --limit-mm-per-prompt
       - '{"image":1,"video":0}'
       - --reasoning-parser

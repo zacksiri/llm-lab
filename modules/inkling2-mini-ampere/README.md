@@ -12,17 +12,23 @@ From this module directory:
 hf download thinkingmachines/Inkling-2-Mini \
   --revision ed40e7da625f594fc9c4990f5f66be24873c22d7 \
   --local-dir "$HOME/models/Inkling-2-Mini"
-cp .env.example .env
-# Edit .env: set MODEL_DIR to the absolute checkpoint path and select the GPUs.
+cp profiles/sm86-tuned.example .env
+# On the tested host this file is already ready to use. Otherwise, edit .env to set
+# MODEL_DIR and the GPU selectors for your hardware.
 
 docker compose -f compose.yaml -f compose.dspark.yaml build
 docker compose -f compose.yaml -f compose.dspark.yaml up -d
 docker compose -f compose.yaml -f compose.dspark.yaml logs -f inkling
 ```
 
+This profile matches the currently running `llm.service`: 250,000-token limit, 1,024-token chunks,
+0.93 GPU memory utilization, async scheduling, 48-split INT8 verify, 1-stage tile, DSpark with three
+draft tokens, two slots and an eight-token decode-graph budget. For the original conservative
+defaults, copy `.env.example` instead.
+
 The server listens on `127.0.0.1:6002`, without an API key. Model loading and first-time Triton compilation may take a few minutes. Speculation is opt-in through `compose.dspark.yaml`; omit it from both commands to run the same INT8 + vision profile without DSpark. Do not start both profiles on the same GPUs. `docker compose down` stops the server but keeps the kernel cache volume.
 
-The DSpark overlay uses four draft tokens and probabilistic sampling. Its decode graphs capture **one and two requests**, with a **10-token** verify budget (`2 × (1 + 4)`). The old one-token capture size left DSpark running without graphs. If you change the draft width or slot count, update the decode capture budget accordingly. Cold prefill remains eager.
+The DSpark overlay defaults to four draft tokens and probabilistic sampling, with a 10-token decode-graph budget. The SM86 tuned profile instead sets three draft tokens and an eight-token budget (`2 × (1 + 3)`). Its decode graphs capture **one and two requests**. The old one-token capture size left DSpark running without graphs. If you change the draft width or slot count, update the decode capture budget accordingly. Cold prefill remains eager.
 
 ## Verify
 
@@ -30,7 +36,7 @@ The DSpark overlay uses four draft tokens and probabilistic sampling. Its decode
 curl -fsS http://127.0.0.1:6002/v1/models
 python3 tools/smoke.py --dspark       # omit --dspark if the overlay is off
 python3 benchmarks/decode_probe.py  # two warmed-up, fixed-length decode probes
-python3 benchmarks/probe.py 199500 # cold archive retrieval, just below 200K
+python3 benchmarks/probe.py 249500 # cold archive retrieval, just below 250K
 ```
 
 Set `INKLING_BASE_URL` for the Python probes if you changed `HOST_PORT`. To test the INT8 kernels without serving the model or loading weights:
@@ -55,7 +61,7 @@ Add this entry under `providers` in `~/.pi/agent/models.json` and select it via 
     "name": "Inkling 2 Mini (Ampere, INT8 KV)",
     "input": ["text", "image"],
     "reasoning": true,
-    "contextWindow": 200000,
+    "contextWindow": 250000,
     "maxTokens": 16384,
     "compat": {
       "supportsDeveloperRole": false,
@@ -74,7 +80,7 @@ Add this entry under `providers` in `~/.pi/agent/models.json` and select it via 
 
 On the tested two-A4500 host, the warmed-up 384-token coding probe improved from **23.2 to 210.4 tok/s** when decode graph capture was fixed (same DSpark profile, median of two timed runs each). The prose probe measured **111.9 tok/s** with graphs; its before benchmark timed out. [Raw timings](benchmarks/). These are short-context decode measurements, not general throughput claims.
 
-The INT8 + vision + DSpark profile retrieved the correct answer from a cold **199,368-token** prompt before the graph change (83.2 s to first token). The graph-enabled server still reports **200,000 tokens per request**, including generation. Its KV pool was **4.96 GiB per GPU**, and the pool is shared across both active slots. Two short concurrent completions passed; two simultaneous 200K requests have **not** been validated with vision and DSpark on. Two ~199K requests overlapped in the earlier INT8 text-only configuration. More VRAM reserved by the allocator is not necessarily more usable KV capacity.
+The INT8 + vision + DSpark profile retrieved the correct answer from a cold **199,368-token** prompt before the graph change (83.2 s to first token). The graph-enabled server still reports **200,000 tokens per request**, including generation in its original conservative profile; the SM86 tuned profile runs the 250,000-token limit. Its KV pool was **4.96 GiB per GPU**, and the pool is shared across both active slots. Two short concurrent completions passed; two simultaneous 200K requests have **not** been validated with vision and DSpark on. Two ~199K requests overlapped in the earlier INT8 text-only configuration. More VRAM reserved by the allocator is not necessarily more usable KV capacity.
 
 For SM86-specific results, see [INT8 prefill tuning](benchmarks/SM86_PREFILL.md), the [DSpark verification sweep](benchmarks/SM86_VERIFY.md), and the [full-model A/B](benchmarks/SM86_AB.md), which shows which settings to enable. All are opt-in.
 

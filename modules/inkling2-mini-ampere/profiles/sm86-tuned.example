@@ -1,0 +1,15 @@
+# Ready-to-use SM86 tuned profile matching the current llm.service setup.
+# Replace MODEL_DIR and the GPU selectors when running on different hardware.
+MODEL_DIR=/home/zacksiri/llm/models/inkling-2-mini-hf
+GPU_DEVICE_0=1
+GPU_DEVICE_1=2
+HOST_PORT=6002
+MAX_MODEL_LEN=250000
+GPU_MEMORY_UTILIZATION=0.93
+ASYNC_FLAG=--async-scheduling
+PREFILL_CHUNK=1024
+INKLING_SM86_INT8_PREFILL=1
+INKLING_SM86_INT8_VERIFY_SPLITS=48
+INKLING_SM86_INT8_VERIFY_TILE=1
+DSPARK_K=3
+DECODE_GRAPH_TOKENS=8  # 2 requests x (1 + DSPARK_K)

@@ -19,6 +19,6 @@ Full-model A/B on two NVLink RTX A4500s (200 W cap), all with the 250,000-token 
 
 Cold retrieval just below the limit (249,273 prompt tokens, exact phrase retrieved by both combined builds): **88.2 s** (4 drafts) and **88.4 s** (3 drafts) to first token, vs **103.0 s** for the earlier prefill-tuned build and **118.7 s** before prefill tuning. Those older numbers came from separate sessions on the same hardware.
 
-The recommended profile is three drafts: it gives up ~4% on code and ~1.5% at 64K for +12% prose and +5% two-session throughput. Use four drafts for code-dominated workloads. Enable with the commented block in `.env.example`; the module's defaults are unchanged. Async scheduling plus smaller chunks fit 250K because they reserve less transient state, not because the KV pool grew. Two simultaneous ~250K requests still queue.
+The recommended profile is three drafts: it gives up ~4% on code and ~1.5% at 64K for +12% prose and +5% two-session throughput. Use four drafts for code-dominated workloads. Enable by copying `profiles/sm86-tuned.example` to `.env`; the original module defaults in `.env.example` remain unchanged. See `../README.md` for the ready-to-use profile. Async scheduling plus smaller chunks fit 250K because they reserve less transient state, not because the KV pool grew. Two simultaneous ~250K requests still queue.
 
 Raw results: [sm86-ab-results/](sm86-ab-results/).
