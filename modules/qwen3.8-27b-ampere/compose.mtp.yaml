@@ -1,0 +1,9 @@
+# Optional: enable the Qwen checkpoint's built-in draft head.
+services:
+  qwen:
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        exec vllm serve "$$@" --speculative-config '{"method":"mtp","num_speculative_tokens":${QWEN_MTP_K:-1}}'
+      - vllm-mtp
